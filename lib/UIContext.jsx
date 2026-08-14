@@ -28,8 +28,11 @@ export function UIProvider({ children }) {
 
   const setPlatformMode = (mode) => {
     if (mode === 'scrum' || mode === 'team') {
-      setPlatformModeState(mode);
       localStorage.setItem('scrum_platform_mode', mode);
+      setPlatformModeState(mode);
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
     }
   };
 

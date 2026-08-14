@@ -23,9 +23,11 @@ export default function Sidebar() {
       {/* Brand Section */}
       <div className="h-16 flex items-center px-6 border-b border-emerald-100 bg-emerald-50/30">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-emerald-500/20">
-            S
-          </div>
+          <img
+            src="/logo.png"
+            alt="Scrum Leader Logo"
+            className="w-8 h-8 rounded-lg object-cover shadow-md shadow-emerald-500/10"
+          />
           <div>
             <h1 className="font-semibold text-emerald-950 text-sm leading-tight">Scrum Portal</h1>
             <span className="text-[10px] text-emerald-600 font-medium tracking-wider uppercase">Leader Console</span>

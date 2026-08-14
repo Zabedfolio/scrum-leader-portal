@@ -34,9 +34,11 @@ function LoginContent() {
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full -mr-8 -mt-8"></div>
           <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/5 rounded-full -ml-6 -mb-6"></div>
           
-          <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-4 border border-white/20 shadow-md">
-            S
-          </div>
+          <img
+            src="/logo.png"
+            alt="Scrum Leader Logo"
+            className="w-12 h-12 rounded-2xl mx-auto mb-4 object-cover border border-white/20 shadow-md bg-emerald-700"
+          />
           <h2 className="text-xl font-bold tracking-tight">Scrum Attendance</h2>
           <p className="text-emerald-100 text-xs mt-1">Management & Points Dashboard</p>
         </div>

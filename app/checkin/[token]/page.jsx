@@ -227,9 +227,11 @@ export default function CheckInPage() {
         
         {/* Banner header */}
         <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 p-6 text-white text-center relative border-b border-emerald-100">
-          <h1 className="text-base font-bold tracking-tight">Live Scrum Check-in</h1>
+          <h1 className="text-base font-bold tracking-tight">
+            {sessionInfo?.isTeamOnly ? 'Team Meeting Check-in' : 'Live Scrum Check-in'}
+          </h1>
           <p className="text-[11px] text-emerald-100 font-bold uppercase tracking-wider mt-1">
-            {sessionInfo?.sessionType} Session &bull; {dateLabel}
+            {['Day', 'Afternoon'].includes(sessionInfo?.sessionType) ? `${sessionInfo?.sessionType} Session` : sessionInfo?.sessionType} &bull; {dateLabel}
           </p>
         </div>
 

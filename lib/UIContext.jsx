@@ -7,12 +7,31 @@ const UIContext = createContext({
   toast: () => {},
   alert: () => {},
   confirm: () => {},
+  platformMode: 'scrum',
+  setPlatformMode: () => {},
 });
 
 export function UIProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [modal, setModal] = useState(null); // { type: 'alert'|'confirm', title: '', message: '', resolve: fn }
+  const [platformMode, setPlatformModeState] = useState('scrum');
   const dialogRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedMode = localStorage.getItem('scrum_platform_mode');
+      if (savedMode === 'scrum' || savedMode === 'team') {
+        setPlatformModeState(savedMode);
+      }
+    }
+  }, []);
+
+  const setPlatformMode = (mode) => {
+    if (mode === 'scrum' || mode === 'team') {
+      setPlatformModeState(mode);
+      localStorage.setItem('scrum_platform_mode', mode);
+    }
+  };
 
   // 1. Toast Notification Logic
   const toast = (message, type = 'success') => {
@@ -74,7 +93,7 @@ export function UIProvider({ children }) {
   };
 
   return (
-    <UIContext.Provider value={{ toast, alert: alertModal, confirm: confirmModal }}>
+    <UIContext.Provider value={{ toast, alert: alertModal, confirm: confirmModal, platformMode, setPlatformMode }}>
       {children}
 
       {/* Floating Toast Notification Stack (Bottom-Right) */}

@@ -5,24 +5,25 @@ import ScrumSession from '@/models/ScrumSession';
 import Team from '@/models/Team';
 import Member from '@/models/Member';
 import AttendanceRecord from '@/models/AttendanceRecord';
+import Admin from '@/models/Admin';
 import { requireAuth } from '@/lib/auth';
 import { getStartOfDayBDinUTC } from '@/lib/time';
 
 export async function POST(request) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     await connectDB();
 
-    const { date, sessionType } = await request.json();
+    const { date, sessionType, isTeamOnly } = await request.json();
 
     if (!date || !sessionType) {
       return NextResponse.json(
-        { error: 'Date and sessionType (Day/Afternoon) are required' },
+        { error: 'Date and Session Time/Label are required' },
         { status: 400 }
       );
     }
 
-    if (!['Day', 'Afternoon'].includes(sessionType)) {
+    if (!isTeamOnly && !['Day', 'Afternoon'].includes(sessionType)) {
       return NextResponse.json(
         { error: 'sessionType must be either "Day" or "Afternoon"' },
         { status: 400 }
@@ -37,24 +38,41 @@ export async function POST(request) {
     const expiryMinutes = parseInt(process.env.CHECKIN_LINK_EXPIRY_MINUTES || '45', 10);
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
-    // Fetch all teams
-    const teams = await Team.find({});
-    if (teams.length === 0) {
-      return NextResponse.json(
-        { error: 'No teams configured in the system. Add teams first.' },
-        { status: 400 }
-      );
+    // Fetch target teams
+    let targetTeams = [];
+    if (isTeamOnly) {
+      const admin = await Admin.findById(user.id);
+      if (!admin || !admin.myTeamId) {
+        return NextResponse.json(
+          { error: 'Please configure your designated team in Settings before generating Team-Only sessions.' },
+          { status: 400 }
+        );
+      }
+      const myTeam = await Team.findById(admin.myTeamId);
+      if (!myTeam) {
+        return NextResponse.json({ error: 'Designated team not found.' }, { status: 404 });
+      }
+      targetTeams = [myTeam];
+    } else {
+      targetTeams = await Team.find({});
+      if (targetTeams.length === 0) {
+        return NextResponse.json(
+          { error: 'No teams configured in the system. Add teams first.' },
+          { status: 400 }
+        );
+      }
     }
 
     const sessions = [];
 
-    // Create or update sessions for all teams
-    for (const team of teams) {
+    // Create or update sessions for target teams
+    for (const team of targetTeams) {
       // Find or create session
       let session = await ScrumSession.findOne({
         date: normalizedDate,
         sessionType,
         teamId: team._id,
+        isTeamOnly: !!isTeamOnly,
       });
 
       if (session) {
@@ -69,6 +87,7 @@ export async function POST(request) {
           date: normalizedDate,
           sessionType,
           teamId: team._id,
+          isTeamOnly: !!isTeamOnly,
           checkInToken: token,
           checkInTokenExpiresAt: expiresAt,
         });

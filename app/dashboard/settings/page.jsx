@@ -13,6 +13,23 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [teams, setTeams] = useState([]);
+  const [myTeamId, setMyTeamId] = useState(user?.myTeamId || '');
+
+  React.useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const res = await fetch('/api/teams');
+        if (res.ok) {
+          const data = await res.json();
+          setTeams(data);
+        }
+      } catch (err) {
+        console.error('Failed to load teams', err);
+      }
+    };
+    fetchTeams();
+  }, []);
 
   // Form notifications
   const [error, setError] = useState('');
@@ -51,6 +68,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           name,
           email,
+          myTeamId: myTeamId || null,
           ...(currentPassword && { currentPassword, newPassword }),
         }),
       });
@@ -131,6 +149,27 @@ export default function SettingsPage() {
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+              Designated "My Team" (For Private Platform)
+            </label>
+            <select
+              value={myTeamId}
+              onChange={(e) => setMyTeamId(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-emerald-500 focus:bg-white"
+            >
+              <option value="">-- Select Your Owned Team --</option>
+              {teams.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.teamCode} - {t.teamName}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-slate-400 font-medium">
+              This team is used for your private "My Team Only" attendance sheets, standings charts, and session links.
+            </p>
           </div>
 
           <div className="border-t border-slate-100 pt-5 space-y-4">

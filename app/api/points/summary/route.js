@@ -14,6 +14,8 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const teamId = searchParams.get('teamId');
+    const isTeamOnlyParam = searchParams.get('isTeamOnly');
+    const isTeamOnly = isTeamOnlyParam === 'true';
 
     // Get current week boundaries in UTC (derived from BST)
     const { startOfWeek, endOfWeek } = getWeekBoundariesBD(new Date());
@@ -25,14 +27,19 @@ export async function GET(request) {
 
     const members = await Member.find(memberQuery).populate('teamId').sort({ name: 1 });
 
+    // Fetch session IDs corresponding to active platform mode
+    const platformSessions = await ScrumSession.find({ isTeamOnly });
+    const platformSessionIds = platformSessions.map(s => s._id);
+
     const summary = await Promise.all(
       members.map(async (member) => {
-        // Fetch all attendance records for this member
-        const allRecords = await AttendanceRecord.find({ memberId: member._id });
+        // Fetch all attendance records for this member in this platform mode
+        const allRecords = await AttendanceRecord.find({
+          memberId: member._id,
+          sessionId: { $in: platformSessionIds },
+        });
 
         // Fetch weekly attendance records for this member
-        // To accurately check if the session falls in the current BST week,
-        // we query records where the parent session's date is between startOfWeek and endOfWeek.
         const weeklyRecords = await Promise.all(
           allRecords.map(async (rec) => {
             const session = await ScrumSession.findById(rec.sessionId);

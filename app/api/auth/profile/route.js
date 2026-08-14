@@ -9,7 +9,7 @@ export async function PATCH(request) {
     const user = await requireAuth();
     await connectDB();
 
-    const { name, email, currentPassword, newPassword } = await request.json();
+    const { name, email, currentPassword, newPassword, myTeamId } = await request.json();
 
     const admin = await Admin.findById(user.id);
     if (!admin) {
@@ -18,6 +18,9 @@ export async function PATCH(request) {
 
     // 1. Update basic profile info
     if (name) admin.name = name.trim();
+    if (myTeamId !== undefined) {
+      admin.myTeamId = myTeamId || null;
+    }
     if (email && email.toLowerCase() !== admin.email) {
       const existing = await Admin.findOne({ email: email.toLowerCase() });
       if (existing) {
@@ -64,6 +67,7 @@ export async function PATCH(request) {
         name: admin.name,
         email: admin.email,
         role: admin.role,
+        myTeamId: admin.myTeamId,
       },
     });
   } catch (error) {

@@ -19,6 +19,7 @@ export async function GET(request, { params }) {
           alreadyCheckedInOnDevice: true,
           sessionType: sessions[0].sessionType,
           date: sessions[0].date,
+          isTeamOnly: sessions[0].isTeamOnly,
         });
       }
     }
@@ -92,6 +93,7 @@ export async function GET(request, { params }) {
       sessionType: firstSession.sessionType,
       date: firstSession.date,
       expiresAt: firstSession.checkInTokenExpiresAt,
+      isTeamOnly: firstSession.isTeamOnly,
       teams: activeTeams,
     });
   } catch (error) {

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Sparkles, Calendar, Persons, Star } from '@gravity-ui/icons';
 
-export default function VisualCharts({ attendanceTrends = [], teamPointsData = [] }) {
+export default function VisualCharts({ attendanceTrends = [], teamPointsData = [], isTeamOnly = false }) {
   const [hoveredTrendIdx, setHoveredTrendIdx] = useState(null);
   const [hoveredBarIdx, setHoveredBarIdx] = useState(null);
 
@@ -227,7 +227,9 @@ export default function VisualCharts({ attendanceTrends = [], teamPointsData = [
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Persons className="w-5 h-5 text-emerald-600" />
-            <h3 className="text-sm font-bold text-slate-800">Team Standings (Avg Points/Member)</h3>
+            <h3 className="text-sm font-bold text-slate-800">
+              {isTeamOnly ? 'Member Standings (Total Points)' : 'Team Standings (Avg Points/Member)'}
+            </h3>
           </div>
           <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
             All-Time Standings
@@ -335,22 +337,28 @@ export default function VisualCharts({ attendanceTrends = [], teamPointsData = [
               }}
             >
               <div className="font-extrabold text-[9px] text-emerald-400 uppercase tracking-wide">
-                {teamBars[hoveredBarIdx].name} ({teamBars[hoveredBarIdx].code})
+                {isTeamOnly ? teamBars[hoveredBarIdx].name : `${teamBars[hoveredBarIdx].name} (${teamBars[hoveredBarIdx].code})`}
               </div>
               <div className="space-y-0.5 font-bold">
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-400">Members:</span>
-                  <span>{teamBars[hoveredBarIdx].members}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-400">Avg Points:</span>
-                  <span className={teamBars[hoveredBarIdx].avg >= 0 ? "text-emerald-400" : "text-red-400"}>
-                    {teamBars[hoveredBarIdx].avg} pts
-                  </span>
-                </div>
+                {!isTeamOnly ? (
+                  <>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-400">Members:</span>
+                      <span>{teamBars[hoveredBarIdx].members}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-slate-400">Avg Points:</span>
+                      <span className={teamBars[hoveredBarIdx].avg >= 0 ? "text-emerald-400" : "text-red-400"}>
+                        {teamBars[hoveredBarIdx].avg} pts
+                      </span>
+                    </div>
+                  </>
+                ) : null}
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-400">Total Points:</span>
-                  <span>{teamBars[hoveredBarIdx].total} pts</span>
+                  <span className={teamBars[hoveredBarIdx].total >= 0 ? "text-emerald-400" : "text-red-400"}>
+                    {teamBars[hoveredBarIdx].total} pts
+                  </span>
                 </div>
               </div>
             </div>

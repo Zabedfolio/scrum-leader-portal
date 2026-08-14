@@ -4,6 +4,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AttendanceGrid from '@/components/grid/AttendanceGrid';
 import Loader from '@/components/shared/Loader';
 import { getWeekBoundariesBD } from '@/lib/time';
+import { useUI } from '@/lib/UIContext';
+import { useAuth } from '@/lib/AuthContext';
+import { TriangleExclamation } from '@gravity-ui/icons';
 
 export default function AttendancePage() {
   const [teams, setTeams] = useState([]);
@@ -12,6 +15,8 @@ export default function AttendancePage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [gridLoading, setGridLoading] = useState(false);
+  const { platformMode } = useUI();
+  const { user } = useAuth();
 
   // Week selection states (represented by a date object inside the target week)
   const [weekPivotDate, setWeekPivotDate] = useState(new Date());
@@ -61,6 +66,20 @@ export default function AttendancePage() {
     fetchTeams();
   }, []);
 
+  useEffect(() => {
+    if (platformMode === 'team') {
+      if (user?.myTeamId) {
+        setSelectedTeamId(user.myTeamId);
+      } else {
+        setSelectedTeamId('');
+      }
+    } else {
+      if (teams.length > 0 && !teams.some(t => t._id === selectedTeamId)) {
+        setSelectedTeamId(teams[0]._id);
+      }
+    }
+  }, [platformMode, user, teams]);
+
   // Fetch members and sessions for the selected team & week
   const fetchGridData = useCallback(async () => {
     if (!selectedTeamId || !startDateStr || !endDateStr) return;
@@ -76,7 +95,7 @@ export default function AttendancePage() {
 
       // 2. Fetch sessions and attendance records in week range
       const sessionsRes = await fetch(
-        `/api/sessions?teamId=${selectedTeamId}&startDate=${startDateStr}&endDate=${endDateStr}`
+        `/api/sessions?teamId=${selectedTeamId}&startDate=${startDateStr}&endDate=${endDateStr}&isTeamOnly=${platformMode === 'team'}`
       );
       if (sessionsRes.ok) {
         const sessionsData = await sessionsRes.json();
@@ -139,12 +158,46 @@ export default function AttendancePage() {
     return <Loader />;
   }
 
+  if (platformMode === 'team' && !user?.myTeamId) {
+    return (
+      <div className="space-y-8 animate-slide-up">
+        {/* Title */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Private Team Attendance</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Toggle member status and lock daily session records.</p>
+        </div>
+        
+        <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm space-y-4 max-w-md mx-auto">
+          <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto border border-amber-100">
+            <TriangleExclamation className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-base font-bold text-slate-800">Designated Team Required</h3>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              You haven't designated your owned team yet. Please go to the settings page to select your team and activate the private platform.
+            </p>
+          </div>
+          <div className="pt-2">
+            <a
+              href="/dashboard/settings"
+              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-3 px-6 rounded-xl shadow-md transition-all uppercase tracking-wider"
+            >
+              Go to Settings
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-slide-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Scrum Sheet Grid</h1>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+            {platformMode === 'team' ? 'Private Team Attendance' : 'Scrum Sheet Grid'}
+          </h1>
           <p className="text-slate-500 text-sm mt-0.5">Toggle member status and lock daily session records.</p>
         </div>
 
@@ -180,7 +233,7 @@ export default function AttendancePage() {
       </div>
 
       {/* Team selection tabs */}
-      {teams.length > 0 ? (
+      {platformMode !== 'team' && teams.length > 0 ? (
         <div className="border-b border-slate-150 flex gap-2 flex-wrap pb-1">
           {teams.map((team) => (
             <button
@@ -196,11 +249,16 @@ export default function AttendancePage() {
             </button>
           ))}
         </div>
-      ) : (
+      ) : platformMode === 'team' && selectedTeamId ? (
+        <div className="bg-emerald-50/50 border border-emerald-100 rounded-2xl p-4 flex justify-between items-center text-xs">
+          <span className="font-semibold text-emerald-800">Viewing Private Attendance Grid:</span>
+          <span className="font-extrabold text-emerald-950 uppercase">{teams.find(t => t._id === selectedTeamId)?.teamName || 'Your Team'}</span>
+        </div>
+      ) : platformMode !== 'team' ? (
         <div className="bg-slate-100 p-6 text-center text-slate-500 rounded-3xl text-sm font-semibold">
           No teams found. Go to "Teams & Members" and create a team first!
         </div>
-      )}
+      ) : null}
 
       {/* Sheet Grid Loader/Container */}
       {gridLoading ? (

@@ -4,9 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Loader from '@/components/shared/Loader';
 import { Star, Persons, TriangleExclamation, ArrowRightFromLine } from '@gravity-ui/icons';
 import { useUI } from '@/lib/UIContext';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function PointsPage() {
-  const { toast } = useUI();
+  const { toast, platformMode } = useUI();
+  const { user } = useAuth();
   const [summary, setSummary] = useState([]);
   const [teams, setTeams] = useState([]);
   const [selectedTeamId, setSelectedTeamId] = useState('');
@@ -33,11 +35,26 @@ export default function PointsPage() {
     fetchTeams();
   }, []);
 
+  useEffect(() => {
+    if (platformMode === 'team') {
+      if (user?.myTeamId) {
+        setSelectedTeamId(user.myTeamId);
+      } else {
+        setSelectedTeamId('');
+      }
+    } else {
+      setSelectedTeamId('');
+    }
+  }, [platformMode, user]);
+
   const fetchSummary = async () => {
     setLoading(true);
     try {
-      const url = selectedTeamId ? `/api/points/summary?teamId=${selectedTeamId}` : '/api/points/summary';
-      const res = await fetch(url);
+      const queryParams = new URLSearchParams();
+      if (selectedTeamId) queryParams.set('teamId', selectedTeamId);
+      queryParams.set('isTeamOnly', String(platformMode === 'team'));
+
+      const res = await fetch(`/api/points/summary?${queryParams.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setSummary(data);
@@ -56,8 +73,11 @@ export default function PointsPage() {
   const handleExportCSV = async () => {
     setExporting(true);
     try {
-      const url = selectedTeamId ? `/api/export?teamId=${selectedTeamId}` : '/api/export';
-      // Standard browser download by window.open or dynamic link click
+      const queryParams = new URLSearchParams();
+      if (selectedTeamId) queryParams.set('teamId', selectedTeamId);
+      queryParams.set('isTeamOnly', String(platformMode === 'team'));
+
+      const url = `/api/export?${queryParams.toString()}`;
       window.open(url, '_blank');
     } catch (err) {
       console.error('Export error:', err);
@@ -123,13 +143,49 @@ export default function PointsPage() {
     return sortOrder === 'asc' ? ' ▴' : ' ▾';
   };
 
+  if (platformMode === 'team' && !user?.myTeamId) {
+    return (
+      <div className="space-y-8 animate-slide-up">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Private Team Ledger</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Points balances and attendance metrics for your team only.</p>
+        </div>
+        
+        <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm space-y-4 max-w-md mx-auto">
+          <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto border border-amber-100">
+            <TriangleExclamation className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-base font-bold text-slate-800">Designated Team Required</h3>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              You haven't designated your owned team yet. Please go to the settings page to select your team and activate the private platform.
+            </p>
+          </div>
+          <div className="pt-2">
+            <a
+              href="/dashboard/settings"
+              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-3 px-6 rounded-xl shadow-md transition-all uppercase tracking-wider"
+            >
+              Go to Settings
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-slide-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Points Ledger</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Scrum session points balances and attendance metrics.</p>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+            {platformMode === 'team' ? 'Private Team Ledger' : 'Points Ledger'}
+          </h1>
+          <p className="text-slate-500 text-sm mt-0.5">
+            {platformMode === 'team' ? 'Points balances and attendance metrics for your team only.' : 'Scrum session points balances and attendance metrics.'}
+          </p>
         </div>
 
         {/* Action button */}
@@ -147,21 +203,27 @@ export default function PointsPage() {
       <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         
         {/* Team filter dropdown */}
-        <div className="flex items-center gap-3">
-          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Filter Team:</label>
-          <select
-            value={selectedTeamId}
-            onChange={(e) => setSelectedTeamId(e.target.value)}
-            className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all min-w-[200px]"
-          >
-            <option value="">All Teams (Combined)</option>
-            {teams.map((team) => (
-              <option key={team._id} value={team._id}>
-                {team.teamCode} &bull; {team.teamName}
-              </option>
-            ))}
-          </select>
-        </div>
+        {platformMode !== 'team' ? (
+          <div className="flex items-center gap-3">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Filter Team:</label>
+            <select
+              value={selectedTeamId}
+              onChange={(e) => setSelectedTeamId(e.target.value)}
+              className="px-4 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all min-w-[200px]"
+            >
+              <option value="">All Teams (Combined)</option>
+              {teams.map((team) => (
+                <option key={team._id} value={team._id}>
+                  {team.teamCode} &bull; {team.teamName}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-100 px-4 py-2 rounded-xl">
+            Private Team: <span className="font-extrabold text-emerald-950 uppercase">{teams.find(t => t._id === selectedTeamId)?.teamName || 'Your Team'}</span>
+          </div>
+        )}
 
         {/* Aggregated statistics info */}
         <div className="flex gap-6 divide-x divide-slate-100">

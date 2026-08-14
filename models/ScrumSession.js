@@ -8,13 +8,16 @@ const ScrumSessionSchema = new mongoose.Schema(
     },
     sessionType: {
       type: String,
-      enum: ['Day', 'Afternoon'],
       required: true,
     },
     teamId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Team',
       required: true,
+    },
+    isTeamOnly: {
+      type: Boolean,
+      default: false,
     },
     locked: {
       type: Boolean,
@@ -39,7 +42,7 @@ const ScrumSessionSchema = new mongoose.Schema(
   }
 );
 
-// Compound unique index on date, sessionType, and teamId
-ScrumSessionSchema.index({ date: 1, sessionType: 1, teamId: 1 }, { unique: true });
+// Compound unique index on date, sessionType, teamId, and isTeamOnly
+ScrumSessionSchema.index({ date: 1, sessionType: 1, teamId: 1, isTeamOnly: 1 }, { unique: true });
 
 export default mongoose.models.ScrumSession || mongoose.model('ScrumSession', ScrumSessionSchema);

@@ -5,16 +5,18 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { House, Calendar, Star, Persons, Gear, ArrowRightFromSquare } from '@gravity-ui/icons';
 import { useAuth } from '@/lib/AuthContext';
+import { useUI } from '@/lib/UIContext';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const { platformMode } = useUI();
 
   const menuItems = [
     { name: 'Overview', href: '/dashboard', icon: House },
     { name: 'Attendance', href: '/dashboard/attendance', icon: Calendar },
     { name: 'Points Board', href: '/dashboard/points', icon: Star },
-    { name: 'Teams & Members', href: '/dashboard/members', icon: Persons },
+    { name: platformMode === 'team' ? 'My Team Members' : 'Teams & Members', href: '/dashboard/members', icon: Persons },
     { name: 'Settings', href: '/dashboard/settings', icon: Gear },
   ];
 

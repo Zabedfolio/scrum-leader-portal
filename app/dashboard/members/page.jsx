@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import Loader from '@/components/shared/Loader';
-import { Persons, Gear, CircleCheck, CircleXmark, Envelope, Handset } from '@gravity-ui/icons';
+import { Persons, Gear, CircleCheck, CircleXmark, Envelope, Handset, TriangleExclamation } from '@gravity-ui/icons';
 import { useUI } from '@/lib/UIContext';
+import { useAuth } from '@/lib/AuthContext';
 
 export default function MembersPage() {
-  const { toast, confirm } = useUI();
+  const { toast, confirm, platformMode } = useUI();
+  const { user } = useAuth();
   const [teams, setTeams] = useState([]);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +68,20 @@ export default function MembersPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (platformMode === 'team') {
+      if (user?.myTeamId) {
+        setFilterTeamId(user.myTeamId);
+        setMemberTeamId(user.myTeamId);
+      }
+    } else {
+      setFilterTeamId('');
+      if (teams.length > 0) {
+        setMemberTeamId(teams[0]._id);
+      }
+    }
+  }, [platformMode, user, teams]);
 
   // TEAM ACTIONS
   const handleAddTeam = async (e) => {
@@ -250,19 +266,56 @@ export default function MembersPage() {
     return <Loader />;
   }
 
+  if (platformMode === 'team' && !user?.myTeamId) {
+    return (
+      <div className="space-y-8 animate-slide-up">
+        {/* Page Title */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">My Team Members</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Manage and update your team members data.</p>
+        </div>
+        
+        <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm space-y-4 max-w-md mx-auto">
+          <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto border border-amber-100">
+            <TriangleExclamation className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-base font-bold text-slate-800">Designated Team Required</h3>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              You haven't designated your owned team yet. Please go to the settings page to select your team and activate the private platform.
+            </p>
+          </div>
+          <div className="pt-2">
+            <a
+              href="/dashboard/settings"
+              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-3 px-6 rounded-xl shadow-md transition-all uppercase tracking-wider"
+            >
+              Go to Settings
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 animate-slide-up">
       {/* Page Title */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Organization Control</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Manage teams and modify scrum members data.</p>
+        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+          {platformMode === 'team' ? 'My Team Members' : 'Organization Control'}
+        </h1>
+        <p className="text-slate-500 text-sm mt-0.5">
+          {platformMode === 'team' ? 'Manage and update your team members data.' : 'Manage teams and modify scrum members data.'}
+        </p>
       </div>
 
       {/* Grid container */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* LEFT COLUMN: Teams Control */}
-        <div className="lg:col-span-5 space-y-6">
+        {platformMode !== 'team' && (
+          <div className="lg:col-span-5 space-y-6">
           <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-6">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <Gear className="w-5 h-5 text-emerald-600" />
@@ -375,9 +428,10 @@ export default function MembersPage() {
             </div>
           </div>
         </div>
-
+        )}
+        
         {/* RIGHT COLUMN: Members Control */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className={platformMode === 'team' ? "lg:col-span-12 space-y-6" : "lg:col-span-7 space-y-6"}>
           <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-6">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
               <Persons className="w-5 h-5 text-emerald-600" />
@@ -406,18 +460,27 @@ export default function MembersPage() {
 
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Assign Team</label>
-                  <select
-                    value={memberTeamId}
-                    onChange={(e) => setMemberTeamId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none"
-                    required
-                  >
-                    {teams.map((t) => (
-                      <option key={t._id} value={t._id}>
-                        {t.teamCode} - {t.teamName}
-                      </option>
-                    ))}
-                  </select>
+                  {platformMode === 'team' ? (
+                    <input
+                      type="text"
+                      value={teams.find(t => t._id === memberTeamId)?.teamName || 'Your Team'}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-500 font-bold"
+                      readOnly
+                    />
+                  ) : (
+                    <select
+                      value={memberTeamId}
+                      onChange={(e) => setMemberTeamId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none"
+                      required
+                    >
+                      {teams.map((t) => (
+                        <option key={t._id} value={t._id}>
+                          {t.teamCode} - {t.teamName}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -484,18 +547,20 @@ export default function MembersPage() {
                   Members List ({filteredMembers.length})
                 </span>
                 
-                <select
-                  value={filterTeamId}
-                  onChange={(e) => setFilterTeamId(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-600 uppercase tracking-wider focus:outline-none"
-                >
-                  <option value="">Show All Teams</option>
-                  {teams.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.teamCode}
-                    </option>
-                  ))}
-                </select>
+                {platformMode !== 'team' && (
+                  <select
+                    value={filterTeamId}
+                    onChange={(e) => setFilterTeamId(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-[10px] font-bold text-slate-600 uppercase tracking-wider focus:outline-none"
+                  >
+                    <option value="">Show All Teams</option>
+                    {teams.map((t) => (
+                      <option key={t._id} value={t._id}>
+                        {t.teamCode}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
@@ -517,17 +582,23 @@ export default function MembersPage() {
                             placeholder="Name"
                             className="px-3 py-1 rounded-lg border text-xs"
                           />
-                          <select
-                            value={editMemberTeamId}
-                            onChange={(e) => setEditMemberTeamId(e.target.value)}
-                            className="px-3 py-1 rounded-lg border text-xs"
-                          >
-                            {teams.map((t) => (
-                              <option key={t._id} value={t._id}>
-                                {t.teamCode}
-                              </option>
-                            ))}
-                          </select>
+                          {platformMode === 'team' ? (
+                            <span className="px-3 py-1 rounded-lg border text-xs bg-slate-50 text-slate-500 font-bold self-center text-center">
+                              {teams.find(t => t._id === editMemberTeamId)?.teamCode || 'My Team'}
+                            </span>
+                          ) : (
+                            <select
+                              value={editMemberTeamId}
+                              onChange={(e) => setEditMemberTeamId(e.target.value)}
+                              className="px-3 py-1 rounded-lg border text-xs"
+                            >
+                              {teams.map((t) => (
+                                <option key={t._id} value={t._id}>
+                                  {t.teamCode}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                           <input
                             type="email"
                             value={editMemberEmail}

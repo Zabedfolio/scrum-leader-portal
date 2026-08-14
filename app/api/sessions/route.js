@@ -20,7 +20,10 @@ export async function GET(request) {
       return NextResponse.json({ error: 'teamId is required' }, { status: 400 });
     }
 
-    const query = { teamId };
+    const isTeamOnlyParam = searchParams.get('isTeamOnly');
+    const isTeamOnly = isTeamOnlyParam === 'true';
+
+    const query = { teamId, isTeamOnly };
 
     if (startDateParam || endDateParam) {
       query.date = {};

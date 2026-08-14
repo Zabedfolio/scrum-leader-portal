@@ -7,7 +7,7 @@ import VisualCharts from '@/components/dashboard/VisualCharts';
 import { useUI } from '@/lib/UIContext';
 
 export default function DashboardPage() {
-  const { toast } = useUI();
+  const { toast, platformMode } = useUI();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,7 +22,7 @@ export default function DashboardPage() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch('/api/dashboard/stats');
+      const res = await fetch(`/api/dashboard/stats?isTeamOnly=${platformMode === 'team'}`);
       if (res.ok) {
         const data = await res.json();
         setStats(data);
@@ -43,9 +43,15 @@ export default function DashboardPage() {
     const mm = String(bstDate.getMonth() + 1).padStart(2, '0');
     const dd = String(bstDate.getDate()).padStart(2, '0');
     setSessionDate(`${yyyy}-${mm}-${dd}`);
-
-    fetchStats();
   }, []);
+
+  useEffect(() => {
+    setSessionType(platformMode === 'team' ? '10:00 AM' : 'Day');
+    setGeneratedLink('');
+    setGeneratedExpiry(null);
+    setLoading(true);
+    fetchStats();
+  }, [platformMode]);
 
   const handleGenerateLink = async (e) => {
     e.preventDefault();
@@ -57,7 +63,11 @@ export default function DashboardPage() {
       const res = await fetch('/api/sessions/generate-checkin-link', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: sessionDate, sessionType }),
+        body: JSON.stringify({
+          date: sessionDate,
+          sessionType,
+          isTeamOnly: platformMode === 'team',
+        }),
       });
 
       if (res.ok) {
@@ -91,6 +101,38 @@ export default function DashboardPage() {
     return <Loader />;
   }
 
+  if (platformMode === 'team' && stats?.teamNotConfigured) {
+    return (
+      <div className="space-y-8 animate-slide-up">
+        {/* Page Title Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Private Team Dashboard</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Custom attendance and standings for your team.</p>
+        </div>
+
+        <div className="bg-white border border-slate-100 rounded-3xl p-12 text-center shadow-sm space-y-4 max-w-md mx-auto">
+          <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto border border-amber-100">
+            <TriangleExclamation className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-base font-bold text-slate-800">Designated Team Required</h3>
+            <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+              You haven't designated your owned team yet. Please go to the settings page to select your team and activate the private platform.
+            </p>
+          </div>
+          <div className="pt-2">
+            <a
+              href="/dashboard/settings"
+              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs py-3 px-6 rounded-xl shadow-md transition-all uppercase tracking-wider"
+            >
+              Go to Settings
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'finalized':
@@ -108,8 +150,14 @@ export default function DashboardPage() {
     <div className="space-y-8 animate-slide-up">
       {/* Page Title Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Console Overview</h1>
-        <p className="text-slate-500 text-sm mt-0.5">Summary of today's active sessions and member statuses.</p>
+        <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+          {platformMode === 'team' ? 'Private Team Dashboard' : 'Console Overview'}
+        </h1>
+        <p className="text-slate-500 text-sm mt-0.5">
+          {platformMode === 'team'
+            ? 'Custom session tracking and performance standings for your team.'
+            : "Summary of today's active sessions and member statuses."}
+        </p>
       </div>
 
       {/* Summary Stats Cards */}
@@ -182,15 +230,28 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Session Interval</label>
-                  <select
-                    value={sessionType}
-                    onChange={(e) => setSessionType(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all"
-                  >
-                    <option value="Day">Day Session</option>
-                    <option value="Afternoon">Afternoon Session</option>
-                  </select>
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {platformMode === 'team' ? 'Meeting Time / Label' : 'Session Interval'}
+                  </label>
+                  {platformMode === 'team' ? (
+                    <input
+                      type="text"
+                      value={sessionType}
+                      onChange={(e) => setSessionType(e.target.value)}
+                      placeholder="e.g. 10:30 AM or Sprint Sync"
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all font-semibold"
+                      required
+                    />
+                  ) : (
+                    <select
+                      value={sessionType}
+                      onChange={(e) => setSessionType(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all"
+                    >
+                      <option value="Day">Day Session</option>
+                      <option value="Afternoon">Afternoon Session</option>
+                    </select>
+                  )}
                 </div>
               </div>
 
@@ -270,16 +331,33 @@ export default function DashboardPage() {
                     <span className="text-xs text-slate-400 font-semibold">{team.teamName}</span>
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-3 flex flex-col items-center gap-2">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Day</span>
-                      {getStatusBadge(team.Day.status)}
+                  {team.isTeamOnly ? (
+                    team.customSessions && team.customSessions.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {team.customSessions.map((sess, sIdx) => (
+                          <div key={sIdx} className="bg-slate-50/50 border border-slate-100 rounded-2xl p-3 flex flex-col items-center gap-2 text-center">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">{sess.sessionType}</span>
+                            {getStatusBadge(sess.status)}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center text-xs text-slate-400 py-4 font-semibold">
+                        No team meetings created for today.
+                      </div>
+                    )
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-3 flex flex-col items-center gap-2">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Day</span>
+                        {getStatusBadge(team.Day.status)}
+                      </div>
+                      <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-3 flex flex-col items-center gap-2">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Afternoon</span>
+                        {getStatusBadge(team.Afternoon.status)}
+                      </div>
                     </div>
-                    <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-3 flex flex-col items-center gap-2">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Afternoon</span>
-                      {getStatusBadge(team.Afternoon.status)}
-                    </div>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -292,6 +370,7 @@ export default function DashboardPage() {
       <VisualCharts
         attendanceTrends={stats?.attendanceTrends || []}
         teamPointsData={stats?.teamPointsData || []}
+        isTeamOnly={platformMode === 'team'}
       />
 
       {/* Flagged/Warning Members section */}

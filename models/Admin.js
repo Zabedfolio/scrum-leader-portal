@@ -23,6 +23,11 @@ const AdminSchema = new mongoose.Schema(
       enum: ['scrum_leader', 'co_admin'],
       default: 'scrum_leader',
     },
+    myTeamId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Team',
+      default: null,
+    },
   },
   {
     timestamps: true,

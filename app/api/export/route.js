@@ -12,6 +12,8 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const teamId = searchParams.get('teamId');
+    const isTeamOnlyParam = searchParams.get('isTeamOnly');
+    const isTeamOnly = isTeamOnlyParam === 'true';
 
     const memberQuery = { isActive: true };
     if (teamId) {
@@ -19,6 +21,11 @@ export async function GET(request) {
     }
 
     const members = await Member.find(memberQuery).populate('teamId').sort({ name: 1 });
+
+    // Fetch session IDs corresponding to active platform mode
+    const ScrumSession = require('@/models/ScrumSession').default || require('@/models/ScrumSession');
+    const platformSessions = await ScrumSession.find({ isTeamOnly });
+    const platformSessionIds = platformSessions.map(s => s._id);
 
     // Generate CSV content
     const csvRows = [];
@@ -36,7 +43,10 @@ export async function GET(request) {
     ].join(','));
 
     for (const member of members) {
-      const records = await AttendanceRecord.find({ memberId: member._id });
+      const records = await AttendanceRecord.find({
+        memberId: member._id,
+        sessionId: { $in: platformSessionIds },
+      });
       
       let presentCount = 0;
       let notInformedCount = 0;

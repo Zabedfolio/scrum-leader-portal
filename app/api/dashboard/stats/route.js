@@ -4,13 +4,46 @@ import Team from '@/models/Team';
 import Member from '@/models/Member';
 import ScrumSession from '@/models/ScrumSession';
 import AttendanceRecord from '@/models/AttendanceRecord';
+import Admin from '@/models/Admin';
 import { requireAuth } from '@/lib/auth';
 import { getStartOfDayBDinUTC, getWeekBoundariesBD } from '@/lib/time';
 
-export async function GET() {
+export async function GET(request) {
   try {
-    await requireAuth();
+    const user = await requireAuth();
     await connectDB();
+
+    const { searchParams } = new URL(request.url);
+    const isTeamOnlyParam = searchParams.get('isTeamOnly');
+    const isTeamOnly = isTeamOnlyParam === 'true';
+
+    // 1. Determine target teams
+    let myTeam = null;
+    let targetTeams = [];
+    if (isTeamOnly) {
+      const admin = await Admin.findById(user.id);
+      if (admin && admin.myTeamId) {
+        myTeam = await Team.findById(admin.myTeamId);
+        if (myTeam) {
+          targetTeams = [myTeam];
+        }
+      }
+    } else {
+      targetTeams = await Team.find({}).sort({ teamCode: 1 });
+    }
+
+    // Return empty payload if in Team-Only mode but team is not yet designated
+    if (isTeamOnly && targetTeams.length === 0) {
+      return NextResponse.json({
+        totalTeams: 0,
+        totalMembers: 0,
+        sessionStatuses: [],
+        flaggedMembers: [],
+        attendanceTrends: [],
+        teamPointsData: [],
+        teamNotConfigured: true,
+      });
+    }
 
     const todayDate = new Date();
     const normalizedToday = getStartOfDayBDinUTC(todayDate);
@@ -18,68 +51,104 @@ export async function GET() {
     // Get current week boundaries in UTC (derived from BST)
     const { startOfWeek, endOfWeek } = getWeekBoundariesBD(todayDate);
 
-    // 1. Fetch quick counts
-    const totalTeams = await Team.countDocuments();
-    const totalMembers = await Member.countDocuments({ isActive: true });
+    // Fetch quick counts
+    const totalTeams = isTeamOnly ? 1 : await Team.countDocuments();
+    const totalMembers = isTeamOnly
+      ? await Member.countDocuments({ teamId: myTeam._id, isActive: true })
+      : await Member.countDocuments({ isActive: true });
 
-    // 2. Fetch all teams
-    const teams = await Team.find({}).sort({ teamCode: 1 });
+    const getStatus = (session) => {
+      if (!session) return 'not_started';
+      if (session.locked) return 'finalized';
+      if (
+        session.checkInToken &&
+        session.checkInTokenExpiresAt &&
+        new Date() < new Date(session.checkInTokenExpiresAt)
+      ) {
+        return 'active';
+      }
+      return 'unfinalized';
+    };
 
-    // 3. Compute session status for each team (Day & Afternoon) for today
+    // 2. Compute session status for target teams
     const sessionStatuses = await Promise.all(
-      teams.map(async (team) => {
-        const daySession = await ScrumSession.findOne({
-          date: normalizedToday,
-          sessionType: 'Day',
-          teamId: team._id,
-        });
+      targetTeams.map(async (team) => {
+        if (isTeamOnly) {
+          const todaySessions = await ScrumSession.find({
+            date: normalizedToday,
+            teamId: team._id,
+            isTeamOnly: true,
+          });
 
-        const afternoonSession = await ScrumSession.findOne({
-          date: normalizedToday,
-          sessionType: 'Afternoon',
-          teamId: team._id,
-        });
+          const customSessions = todaySessions.map(sess => ({
+            status: getStatus(sess),
+            sessionId: sess._id,
+            token: sess.checkInToken,
+            sessionType: sess.sessionType,
+          }));
 
-        const getStatus = (session) => {
-          if (!session) return 'not_started';
-          if (session.locked) return 'finalized';
-          if (
-            session.checkInToken &&
-            session.checkInTokenExpiresAt &&
-            new Date() < new Date(session.checkInTokenExpiresAt)
-          ) {
-            return 'active';
-          }
-          return 'unfinalized'; // Created but link expired, waiting for final save
-        };
+          return {
+            teamId: team._id,
+            teamCode: team.teamCode,
+            teamName: team.teamName,
+            customSessions,
+            isTeamOnly: true,
+          };
+        } else {
+          const daySession = await ScrumSession.findOne({
+            date: normalizedToday,
+            sessionType: 'Day',
+            teamId: team._id,
+            isTeamOnly: false,
+          });
 
-        return {
-          teamId: team._id,
-          teamCode: team.teamCode,
-          teamName: team.teamName,
-          Day: {
-            status: getStatus(daySession),
-            sessionId: daySession ? daySession._id : null,
-            token: daySession ? daySession.checkInToken : null,
-          },
-          Afternoon: {
-            status: getStatus(afternoonSession),
-            sessionId: afternoonSession ? afternoonSession._id : null,
-            token: afternoonSession ? afternoonSession.checkInToken : null,
-          },
-        };
+          const afternoonSession = await ScrumSession.findOne({
+            date: normalizedToday,
+            sessionType: 'Afternoon',
+            teamId: team._id,
+            isTeamOnly: false,
+          });
+
+          return {
+            teamId: team._id,
+            teamCode: team.teamCode,
+            teamName: team.teamName,
+            Day: {
+              status: getStatus(daySession),
+              sessionId: daySession ? daySession._id : null,
+              token: daySession ? daySession.checkInToken : null,
+            },
+            Afternoon: {
+              status: getStatus(afternoonSession),
+              sessionId: afternoonSession ? afternoonSession._id : null,
+              token: afternoonSession ? afternoonSession.checkInToken : null,
+            },
+            isTeamOnly: false,
+          };
+        }
       })
     );
 
-    // 4. Compute at-risk members list
-    // - Weekly Red Flag: >= 2 absences in the current BST week
-    // - All-time Warning: exactly 3 Not Informed absences
-    // - All-time At Risk: >= 4 Not Informed absences
-    const activeMembers = await Member.find({ isActive: true }).populate('teamId');
+    // 3. Compute at-risk members list (restricted by platform mode)
+    const activeMembersQuery = { isActive: true };
+    if (isTeamOnly) {
+      activeMembersQuery.teamId = myTeam._id;
+    }
+    const activeMembers = await Member.find(activeMembersQuery).populate('teamId');
     const flaggedMembers = [];
 
+    // Filter sessions to only count metrics from matching platform mode
+    const platformSessionIds = await ScrumSession.find({
+      isTeamOnly: !!isTeamOnly,
+      ...(isTeamOnly && { teamId: myTeam._id }),
+    }).select('_id');
+    const platformSessionIdsArr = platformSessionIds.map(s => s._id);
+
     for (const member of activeMembers) {
-      const allRecords = await AttendanceRecord.find({ memberId: member._id });
+      const allRecords = await AttendanceRecord.find({
+        memberId: member._id,
+        sessionId: { $in: platformSessionIdsArr },
+      });
 
       let allTimeNotInformed = 0;
       allRecords.forEach((rec) => {
@@ -117,8 +186,14 @@ export async function GET() {
       }
     }
 
-    // 5. Compute Attendance Rate Trends (last 7 sessions across all teams)
+    // 4. Compute Attendance Rate Trends (last 7 sessions in matching platform mode)
     const uniqueSessionDates = await ScrumSession.aggregate([
+      {
+        $match: {
+          isTeamOnly: !!isTeamOnly,
+          ...(isTeamOnly && { teamId: myTeam._id }),
+        },
+      },
       {
         $group: {
           _id: {
@@ -132,14 +207,13 @@ export async function GET() {
       { $limit: 7 },
     ]);
 
-    // Sort oldest to newest
     uniqueSessionDates.reverse();
 
     const attendanceTrends = await Promise.all(
       uniqueSessionDates.map(async (group) => {
         const d = new Date(group._id.date);
         const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
-        const label = `${dateStr} ${group._id.sessionType === 'Day' ? 'Day' : 'Aft'}`;
+        const label = isTeamOnly ? `${dateStr} ${group._id.sessionType}` : `${dateStr} ${group._id.sessionType === 'Day' ? 'Day' : 'Aft'}`;
 
         const totalRecords = await AttendanceRecord.countDocuments({
           sessionId: { $in: group.sessionIds },
@@ -159,13 +233,17 @@ export async function GET() {
       })
     );
 
-    // 6. Compute Team-by-Team Points Comparison
+    // 5. Compute Points Comparison
     const teamPointsData = [];
-    for (const team of teams) {
-      const members = await Member.find({ teamId: team._id, isActive: true });
-      let totalPoints = 0;
+    if (isTeamOnly) {
+      // In Team-Only mode, compare members of my team
+      const members = await Member.find({ teamId: myTeam._id, isActive: true });
       for (const m of members) {
-        const records = await AttendanceRecord.find({ memberId: m._id });
+        const records = await AttendanceRecord.find({
+          memberId: m._id,
+          sessionId: { $in: platformSessionIdsArr },
+        });
+
         let presentCount = 0;
         let notInformedCount = 0;
         let informedCount = 0;
@@ -175,19 +253,54 @@ export async function GET() {
           else if (rec.status === 'absent_not_informed') notInformedCount++;
           else if (rec.status === 'absent_informed') informedCount++;
         });
-        totalPoints += (presentCount * 1 + notInformedCount * -1 + informedCount * 0);
+
+        const totalPoints = presentCount * 1 + notInformedCount * -1 + informedCount * 0;
+        
+        teamPointsData.push({
+          teamId: m._id,
+          teamCode: m.name.split(' ')[0], // first name for chart X-axis label
+          teamName: m.name,
+          totalPoints,
+          averagePoints: totalPoints,
+          memberCount: 1,
+        });
       }
+      // Sort members by points descending
+      teamPointsData.sort((a, b) => b.totalPoints - a.totalPoints);
+    } else {
+      // In Scrum mode, compare teams averages
+      const allTeams = await Team.find({}).sort({ teamCode: 1 });
+      for (const team of allTeams) {
+        const members = await Member.find({ teamId: team._id, isActive: true });
+        let totalPoints = 0;
+        for (const m of members) {
+          const records = await AttendanceRecord.find({
+            memberId: m._id,
+            sessionId: { $in: platformSessionIdsArr },
+          });
+          let presentCount = 0;
+          let notInformedCount = 0;
+          let informedCount = 0;
 
-      const averagePoints = members.length > 0 ? Math.round((totalPoints / members.length) * 10) / 10 : 0;
+          records.forEach((rec) => {
+            if (rec.status === 'present') presentCount++;
+            else if (rec.status === 'absent_not_informed') notInformedCount++;
+            else if (rec.status === 'absent_informed') informedCount++;
+          });
+          totalPoints += (presentCount * 1 + notInformedCount * -1 + informedCount * 0);
+        }
 
-      teamPointsData.push({
-        teamId: team._id,
-        teamCode: team.teamCode,
-        teamName: team.teamName,
-        totalPoints,
-        averagePoints,
-        memberCount: members.length,
-      });
+        const averagePoints = members.length > 0 ? Math.round((totalPoints / members.length) * 10) / 10 : 0;
+
+        teamPointsData.push({
+          teamId: team._id,
+          teamCode: team.teamCode,
+          teamName: team.teamName,
+          totalPoints,
+          averagePoints,
+          memberCount: members.length,
+        });
+      }
     }
 
     return NextResponse.json({

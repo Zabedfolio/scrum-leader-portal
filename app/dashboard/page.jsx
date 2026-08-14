@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Link as LinkIcon, TriangleExclamation, Persons, Star, CircleCheck, Copy, Sparkles } from '@gravity-ui/icons';
 import Loader from '@/components/shared/Loader';
+import VisualCharts from '@/components/dashboard/VisualCharts';
 import { useUI } from '@/lib/UIContext';
 
 export default function DashboardPage() {
@@ -286,6 +287,12 @@ export default function DashboardPage() {
         </div>
 
       </div>
+
+      {/* Visual Analytics Charts */}
+      <VisualCharts
+        attendanceTrends={stats?.attendanceTrends || []}
+        teamPointsData={stats?.teamPointsData || []}
+      />
 
       {/* Flagged/Warning Members section */}
       <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-6">

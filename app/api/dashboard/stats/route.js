@@ -117,11 +117,86 @@ export async function GET() {
       }
     }
 
+    // 5. Compute Attendance Rate Trends (last 7 sessions across all teams)
+    const uniqueSessionDates = await ScrumSession.aggregate([
+      {
+        $group: {
+          _id: {
+            date: '$date',
+            sessionType: '$sessionType',
+          },
+          sessionIds: { $push: '$_id' },
+        },
+      },
+      { $sort: { '_id.date': -1, '_id.sessionType': -1 } },
+      { $limit: 7 },
+    ]);
+
+    // Sort oldest to newest
+    uniqueSessionDates.reverse();
+
+    const attendanceTrends = await Promise.all(
+      uniqueSessionDates.map(async (group) => {
+        const d = new Date(group._id.date);
+        const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
+        const label = `${dateStr} ${group._id.sessionType === 'Day' ? 'Day' : 'Aft'}`;
+
+        const totalRecords = await AttendanceRecord.countDocuments({
+          sessionId: { $in: group.sessionIds },
+        });
+
+        if (totalRecords === 0) {
+          return { label, rate: 100 };
+        }
+
+        const presentRecords = await AttendanceRecord.countDocuments({
+          sessionId: { $in: group.sessionIds },
+          status: 'present',
+        });
+
+        const rate = Math.round((presentRecords / totalRecords) * 100);
+        return { label, rate };
+      })
+    );
+
+    // 6. Compute Team-by-Team Points Comparison
+    const teamPointsData = [];
+    for (const team of teams) {
+      const members = await Member.find({ teamId: team._id, isActive: true });
+      let totalPoints = 0;
+      for (const m of members) {
+        const records = await AttendanceRecord.find({ memberId: m._id });
+        let presentCount = 0;
+        let notInformedCount = 0;
+        let informedCount = 0;
+
+        records.forEach((rec) => {
+          if (rec.status === 'present') presentCount++;
+          else if (rec.status === 'absent_not_informed') notInformedCount++;
+          else if (rec.status === 'absent_informed') informedCount++;
+        });
+        totalPoints += (presentCount * 1 + notInformedCount * -1 + informedCount * 0);
+      }
+
+      const averagePoints = members.length > 0 ? Math.round((totalPoints / members.length) * 10) / 10 : 0;
+
+      teamPointsData.push({
+        teamId: team._id,
+        teamCode: team.teamCode,
+        teamName: team.teamName,
+        totalPoints,
+        averagePoints,
+        memberCount: members.length,
+      });
+    }
+
     return NextResponse.json({
       totalTeams,
       totalMembers,
       sessionStatuses,
       flaggedMembers,
+      attendanceTrends,
+      teamPointsData,
       today: normalizedToday,
     });
   } catch (error) {

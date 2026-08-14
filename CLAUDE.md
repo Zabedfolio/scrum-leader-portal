@@ -52,19 +52,13 @@ Here are key enhancements recommended for the next phase of development:
 ### 1. 💬 Notification Webhooks
 - **Slack/Discord/Microsoft Teams Integrations:** Trigger a webhook notify payload automatically when a Scrum Leader creates a new session link, sending the public check-in link directly to the team channels.
 
-### 📊 2. Attendance & Points Visual Analytics
-- Add charting components (using `Recharts` or similar) to the main dashboard screen to show:
-  - Daily attendance rate trends.
-  - Team-by-team points comparison chart.
-  - Performance standings history.
-
-### 📝 3. Administrative Audit Log (Override History)
+### 📝 2. Administrative Audit Log (Override History)
 - Log changes in the database whenever an administrator manually overrides a member's attendance cell or edits points.
 - Build an "Audit Trail" log tab in the admin panel showing who changed what, when, and the reason.
 
-### 📴 4. Progressive Web App (PWA) & Offline Caching
+### 📴 3. Progressive Web App (PWA) & Offline Caching
 - Cache assets and handle intermittent internet connectivity issues on the mobile check-in page so team members can queue check-ins offline, syncing them back to the server when network reconnects.
 
-### 👥 5. Co-Admin / Team Leader Permissions Layer
+### 👥 4. Co-Admin / Team Leader Permissions Layer
 - Expand roles (`member`, `team_leader`, `admin`).
 - Allow users registered as `team_leader` to log in and manage the attendance grids for *their specific team only*, while keeping global settings and cross-team actions restricted to the Scrum Leader (owner).

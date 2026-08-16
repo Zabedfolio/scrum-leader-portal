@@ -3,6 +3,8 @@ import connectDB from '@/lib/db';
 import Admin from '@/models/Admin';
 import Member from '@/models/Member';
 import Team from '@/models/Team';
+import AttendanceRecord from '@/models/AttendanceRecord';
+import ScrumSession from '@/models/ScrumSession';
 
 export async function GET() {
   try {
@@ -16,11 +18,32 @@ export async function GET() {
       .populate('teamId')
       .select('name email role teamId');
 
+    // Fetch all active session IDs to filter out deleted/orphan records
+    const activeSessions = await ScrumSession.find({}).select('_id');
+    const activeSessionIds = activeSessions.map(s => s._id);
+
     const mergedAdminIds = new Set();
     const directory = [];
 
     // 1. Process active team members and check if they overlap with admin accounts (matching email or name)
     for (const member of members) {
+      // Calculate member points (only counting records for active sessions)
+      const records = await AttendanceRecord.find({ 
+        memberId: member._id,
+        sessionId: { $in: activeSessionIds }
+      });
+      let presentCount = 0;
+      let notInformedCount = 0;
+      let informedCount = 0;
+
+      records.forEach((rec) => {
+        if (rec.status === 'present') presentCount++;
+        else if (rec.status === 'absent_not_informed') notInformedCount++;
+        else if (rec.status === 'absent_informed') informedCount++;
+      });
+
+      const totalPoints = presentCount * 1 + notInformedCount * -1 + informedCount * 0;
+
       const memberEmailLower = member.email ? member.email.toLowerCase().trim() : '';
       const memberNameLower = member.name ? member.name.toLowerCase().trim() : '';
 
@@ -51,6 +74,7 @@ export async function GET() {
           type: 'member', // Allow edit/delete as member
           teamCode: member.teamId?.teamCode || 'N/A',
           teamName: member.teamId?.teamName || 'Unassigned',
+          points: totalPoints,
           isDoubleRole: true,
         });
 
@@ -65,6 +89,7 @@ export async function GET() {
           type: 'member',
           teamCode: member.teamId?.teamCode || 'N/A',
           teamName: member.teamId?.teamName || 'Unassigned',
+          points: totalPoints,
         });
       }
     }
@@ -80,6 +105,7 @@ export async function GET() {
           type: 'admin',
           teamCode: 'ADMIN',
           teamName: 'Administration',
+          points: null,
         });
       }
     }

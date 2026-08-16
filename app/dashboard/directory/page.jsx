@@ -208,12 +208,13 @@ export default function AdminDirectoryPage() {
       {/* Directory Grid Table */}
       <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-xs">
+           <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
                 <th className="p-4 pl-6">Full Name</th>
                 <th className="p-4">Team</th>
                 <th className="p-4">Role</th>
+                <th className="p-4 text-center">Points</th>
                 <th className="p-4">Registered Gmail</th>
                 <th className="p-4 pr-6 text-right">Actions</th>
               </tr>
@@ -221,7 +222,7 @@ export default function AdminDirectoryPage() {
             <tbody className="divide-y divide-slate-100">
               {filteredPeople.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-400 font-semibold">
+                  <td colSpan={6} className="p-8 text-center text-slate-400 font-semibold">
                     No members matched search.
                   </td>
                 </tr>
@@ -263,6 +264,22 @@ export default function AdminDirectoryPage() {
                         <span className={`px-2.5 py-1 rounded-full text-[9px] uppercase tracking-wide border ${roleBadgeClass}`}>
                           {person.role}
                         </span>
+                      </td>
+
+                      <td className="p-4 text-center font-bold">
+                        {person.points !== null && person.points !== undefined ? (
+                          <span className={`px-2.5 py-1 rounded-xl text-[10px] border ${
+                            person.points > 0 
+                              ? 'bg-green-50 text-green-700 border-green-200' 
+                              : person.points < 0 
+                                ? 'bg-red-50 text-red-750 border-red-200' 
+                                : 'bg-slate-50 text-slate-600 border-slate-200'
+                          }`}>
+                            {person.points > 0 ? `+${person.points}` : person.points}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 font-normal italic">-</span>
+                        )}
                       </td>
                       
                       <td className="p-4 font-mono font-bold text-slate-700 select-all">

@@ -24,14 +24,13 @@ export default function FormsPage() {
       path: '/survey',
       badge: 'Public & Active',
     },
-    // Future forms can be appended here, e.g.:
-    // {
-    //   id: 'sprint-retro',
-    //   title: 'Sprint Retrospective Feedback',
-    //   description: 'Gather feedback on what went well, what could be improved, and actions for next sprint.',
-    //   path: '/retro-survey',
-    //   badge: 'Draft',
-    // }
+    {
+      id: 'member-directory',
+      title: 'Portal Member Directory',
+      description: 'Public member list showing registered names, teams, and emails. Useful for members who forgot their registered Gmail address.',
+      path: '/directory',
+      badge: 'Public & Active',
+    },
   ];
 
   const handleCopyLink = (path, id) => {

@@ -28,6 +28,10 @@ const AdminSchema = new mongoose.Schema(
       ref: 'Team',
       default: null,
     },
+    lastActiveAt: {
+      type: Date,
+      default: Date.now,
+    },
   },
   {
     timestamps: true,

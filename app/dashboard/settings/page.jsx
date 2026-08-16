@@ -23,6 +23,25 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const getOnlineStatus = (lastActiveAt) => {
+    if (!lastActiveAt) return { label: 'Offline', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+    const diffMs = new Date() - new Date(lastActiveAt);
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 5) {
+      return { label: 'Online', color: 'text-green-700 bg-green-50 border-green-200 animate-pulse' };
+    } else if (diffMins < 60) {
+      return { label: `${diffMins}m ago`, color: 'text-slate-500 bg-slate-50 border-slate-150' };
+    } else {
+      const hours = Math.floor(diffMins / 60);
+      if (hours < 24) {
+        return { label: `${hours}h ago`, color: 'text-slate-500 bg-slate-50 border-slate-150' };
+      } else {
+        return { label: 'Offline', color: 'text-slate-400 bg-slate-50 border-slate-200' };
+      }
+    }
+  };
+
   // Admin Management State
   const [adminsList, setAdminsList] = useState([]);
   const [adminName, setAdminName] = useState('');
@@ -394,6 +413,7 @@ export default function SettingsPage() {
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Registered Console Users ({adminsList.length})</span>
               {adminsList.map((admin) => {
                 const isSelf = user?.email === admin.email;
+                const status = getOnlineStatus(admin.lastActiveAt);
                 return (
                   <div
                     key={admin._id}
@@ -407,6 +427,9 @@ export default function SettingsPage() {
                             You
                           </span>
                         )}
+                        <span className={`text-[8px] px-2 py-0.5 rounded-full border font-bold uppercase tracking-wider ${status.color}`}>
+                          {status.label}
+                        </span>
                       </div>
                       <div className="text-[10px] font-mono text-slate-500 font-semibold">{admin.email}</div>
                       <div className="text-[9px] uppercase tracking-wider font-extrabold text-emerald-800 mt-0.5">

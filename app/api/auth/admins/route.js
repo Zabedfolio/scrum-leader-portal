@@ -10,7 +10,7 @@ export async function GET() {
     await requireAuth();
     await connectDB();
 
-    const admins = await Admin.find({}).select('name email role createdAt').sort({ createdAt: -1 });
+    const admins = await Admin.find({}).select('name email role createdAt lastActiveAt').sort({ createdAt: -1 });
     return NextResponse.json(admins);
   } catch (error) {
     if (error.status === 401) {

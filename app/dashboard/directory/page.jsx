@@ -160,12 +160,12 @@ export default function AdminDirectoryPage() {
             {copied ? (
               <>
                 <CircleCheck className="w-3.5 h-3.5" />
-                Copied
+                <span className="hidden sm:inline">Copied</span>
               </>
             ) : (
               <>
                 <Copy className="w-3.5 h-3.5" />
-                Copy Link
+                <span className="hidden sm:inline">Copy Link</span>
               </>
             )}
           </button>
@@ -211,12 +211,12 @@ export default function AdminDirectoryPage() {
            <table className="w-full border-collapse text-left text-xs">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                <th className="p-4 pl-6">Full Name</th>
-                <th className="p-4">Team</th>
-                <th className="p-4">Role</th>
-                <th className="p-4 text-center">Points</th>
-                <th className="p-4">Registered Gmail</th>
-                <th className="p-4 pr-6 text-right">Actions</th>
+                <th className="p-4 pl-6 whitespace-nowrap">Full Name</th>
+                <th className="p-4 whitespace-nowrap">Team</th>
+                <th className="p-4 whitespace-nowrap">Role</th>
+                <th className="p-4 text-center whitespace-nowrap">Points</th>
+                <th className="p-4 whitespace-nowrap">Registered Gmail</th>
+                <th className="p-4 pr-6 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -250,25 +250,25 @@ export default function AdminDirectoryPage() {
 
                   return (
                     <tr key={person._id} className={`transition-colors duration-150 ${rowClass}`}>
-                      <td className="p-4 pl-6 font-bold text-slate-800">
+                      <td className="p-4 pl-6 font-bold text-slate-800 whitespace-nowrap">
                         {person.name}
                       </td>
                       
-                      <td className="p-4 font-semibold text-slate-500">
-                        <span className={`px-2.5 py-1 rounded-full text-[9px] uppercase tracking-wide border ${teamBadgeClass}`}>
+                      <td className="p-4 font-semibold text-slate-500 whitespace-nowrap">
+                        <span className={`px-2.5 py-1 rounded-full text-[9px] uppercase tracking-wide border whitespace-nowrap ${teamBadgeClass}`}>
                           {person.teamCode}
                         </span>
                       </td>
                       
-                      <td className="p-4">
-                        <span className={`px-2.5 py-1 rounded-full text-[9px] uppercase tracking-wide border ${roleBadgeClass}`}>
+                      <td className="p-4 whitespace-nowrap">
+                        <span className={`px-2.5 py-1 rounded-full text-[9px] uppercase tracking-wide border whitespace-nowrap ${roleBadgeClass}`}>
                           {person.role}
                         </span>
                       </td>
 
-                      <td className="p-4 text-center font-bold">
+                      <td className="p-4 text-center font-bold whitespace-nowrap">
                         {person.points !== null && person.points !== undefined ? (
-                          <span className={`px-2.5 py-1 rounded-xl text-[10px] border ${
+                          <span className={`px-2.5 py-1 rounded-xl text-[10px] border whitespace-nowrap ${
                             person.points > 0 
                               ? 'bg-green-50 text-green-700 border-green-200' 
                               : person.points < 0 
@@ -282,11 +282,11 @@ export default function AdminDirectoryPage() {
                         )}
                       </td>
                       
-                      <td className="p-4 font-mono font-bold text-slate-700 select-all">
+                      <td className="p-4 font-mono font-bold text-slate-700 select-all whitespace-nowrap">
                         {person.email || <span className="text-slate-300 font-normal italic">No email registered</span>}
                       </td>
 
-                      <td className="p-4 pr-6 text-right">
+                      <td className="p-4 pr-6 text-right whitespace-nowrap">
                         {person.type === 'member' ? (
                           <div className="flex gap-2 justify-end">
                             <button

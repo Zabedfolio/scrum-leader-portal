@@ -143,12 +143,12 @@ export default function AttendanceGrid({
     <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden flex flex-col">
       {/* Scrollable grid wrapper */}
       <div className="overflow-x-auto custom-scrollbar max-w-full">
-        <table className="w-full text-left border-collapse table-fixed">
+        <table className="text-left border-collapse table-fixed" style={{ width: 'max-content', minWidth: '100%' }}>
           <thead>
             {/* Headers row */}
             <tr className="border-b border-emerald-100 bg-emerald-50/20">
-              {/* Sticky first column header */}
-              <th className="sticky left-0 bg-white border-r border-emerald-100 p-4 font-bold text-xs text-slate-400 uppercase tracking-wider min-w-[200px] w-[200px] z-10">
+              {/* Sticky first column header (desktop only) */}
+              <th className="lg:sticky lg:left-0 bg-white border-r border-emerald-100 p-4 font-bold text-xs text-slate-400 uppercase tracking-wider min-w-[155px] sm:min-w-[200px] w-[155px] sm:w-[200px] lg:z-10">
                 Scrum Member
               </th>
               
@@ -202,8 +202,8 @@ export default function AttendanceGrid({
                   key={member._id}
                   className="hover:bg-slate-50/20 transition-colors duration-100 group"
                 >
-                  {/* Sticky Member name column */}
-                  <td className="sticky left-0 bg-white border-r border-emerald-100 p-4 font-semibold text-sm z-10 shadow-[2px_0_5px_rgba(0,0,0,0.01)] group-hover:bg-slate-50/50 transition-colors">
+                  {/* Sticky Member name column (desktop only) */}
+                  <td className="lg:sticky lg:left-0 bg-white border-r border-emerald-100 p-4 font-semibold text-sm lg:z-10 shadow-[2px_0_5px_rgba(0,0,0,0.01)] lg:group-hover:bg-slate-50/50 transition-colors">
                     <div className="flex flex-col">
                       <span
                         className={`transition-colors ${

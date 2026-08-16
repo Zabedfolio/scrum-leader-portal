@@ -268,30 +268,30 @@ export default function AttendancePage() {
           )}
 
           {/* Date Boundaries Selector widget */}
-          <div className="flex items-center gap-2 bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-1 sm:gap-2 bg-white border border-slate-100 p-1 sm:p-1.5 rounded-2xl shadow-sm max-w-full overflow-hidden">
             <button
               onClick={handlePrevWeek}
-              className="p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
+              className="p-1.5 sm:p-2 text-slate-650 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
               title="Previous Week"
             >
-              &larr; Prev
+              &larr; <span className="hidden sm:inline">Prev</span>
             </button>
             
-            <div className="px-4 text-xs font-bold text-slate-700 tracking-tight text-center min-w-[200px]">
+            <div className="px-1 sm:px-4 text-[10px] sm:text-xs font-bold text-slate-700 tracking-tight text-center min-w-[125px] sm:min-w-[200px]">
               {weekLabel || 'Loading range...'}
             </div>
             
             <button
               onClick={handleNextWeek}
-              className="p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
+              className="p-1.5 sm:p-2 text-slate-650 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
               title="Next Week"
             >
-              Next &rarr;
+              <span className="hidden sm:inline">Next</span> &rarr;
             </button>
             
             <button
               onClick={handleResetToCurrent}
-              className="px-3 py-1.5 ml-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+              className="px-2 sm:px-3 py-1 sm:py-1.5 ml-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all"
             >
               Today
             </button>
@@ -301,18 +301,19 @@ export default function AttendancePage() {
 
       {/* Team selection tabs */}
       {platformMode !== 'team' && teams.length > 0 ? (
-        <div className="border-b border-slate-150 flex gap-2 flex-wrap pb-1">
+        <div className="border-b border-slate-150 flex gap-1 sm:gap-2 flex-wrap pb-1">
           {teams.map((team) => (
             <button
               key={team._id}
               onClick={() => setSelectedTeamId(team._id)}
-              className={`px-5 py-2.5 rounded-t-2xl font-bold text-xs uppercase tracking-wider transition-all border-b-2 ${
+              className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-t-2xl font-bold text-[10px] sm:text-xs uppercase tracking-wider transition-all border-b-2 ${
                 selectedTeamId === team._id
                   ? 'border-emerald-600 text-emerald-700 bg-white font-extrabold shadow-sm shadow-slate-100/50'
                   : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'
               }`}
             >
-              {team.teamCode} &bull; {team.teamName}
+              <span className="inline sm:hidden">{team.teamCode}</span>
+              <span className="hidden sm:inline">{team.teamCode} &bull; {team.teamName}</span>
             </button>
           ))}
         </div>

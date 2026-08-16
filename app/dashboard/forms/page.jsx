@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useUI } from '@/lib/UIContext';
-import { Copy, CircleCheck } from '@gravity-ui/icons';
+import { Copy, CircleCheck, ArrowRightFromSquare } from '@gravity-ui/icons';
 
 export default function FormsPage() {
   const { toast } = useUI();
@@ -88,12 +88,12 @@ export default function FormsPage() {
                   {isCopied ? (
                     <>
                       <CircleCheck className="w-3.5 h-3.5 text-emerald-600 animate-scale-in" />
-                      Copied!
+                      <span className="hidden sm:inline">Copied!</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      Copy Link
+                      <span className="hidden sm:inline">Copy Link</span>
                     </>
                   )}
                 </button>
@@ -101,9 +101,10 @@ export default function FormsPage() {
                   href={form.path}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl text-center shadow-md transition-all uppercase tracking-wider flex items-center justify-center"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl text-center shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-1.5"
                 >
-                  Open Form
+                  <ArrowRightFromSquare className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Open Form</span>
                 </a>
               </div>
             </div>

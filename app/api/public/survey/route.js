@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import SurveyResponse from '@/models/SurveyResponse';
 import Team from '@/models/Team';
+import Member from '@/models/Member';
 
 export async function POST(request) {
   try {
@@ -10,7 +11,9 @@ export async function POST(request) {
     const body = await request.json();
 
     const {
-      fullName,
+      memberId,
+      email,
+      idToken,
       teamId,
       role,
       standup11AmSuitable,
@@ -31,7 +34,7 @@ export async function POST(request) {
 
     // Validate required fields
     if (
-      !fullName ||
+      !memberId ||
       !teamId ||
       !role ||
       !standup11AmSuitable ||
@@ -55,21 +58,61 @@ export async function POST(request) {
       );
     }
 
+    // Fetch member
+    const member = await Member.findById(memberId);
+    if (!member) {
+      return NextResponse.json(
+        { error: 'Selected member does not exist in the database.' },
+        { status: 404 }
+      );
+    }
+
+    // Gmail Confirmation Identity Verification
+    if (member.email) {
+      let verifiedEmail = email;
+
+      if (idToken) {
+        try {
+          const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+          if (verifyRes.ok) {
+            const payload = await verifyRes.json();
+            verifiedEmail = payload.email;
+          } else {
+            return NextResponse.json({ error: 'Invalid Google identity token.' }, { status: 400 });
+          }
+        } catch (err) {
+          console.error('Google token verify error:', err);
+          return NextResponse.json({ error: 'Failed to verify Google identity.' }, { status: 500 });
+        }
+      }
+
+      if (!verifiedEmail) {
+        return NextResponse.json({ error: 'Verification required: Please verify your registered email.' }, { status: 400 });
+      }
+
+      if (member.email.trim().toLowerCase() !== verifiedEmail.trim().toLowerCase()) {
+        return NextResponse.json({
+          error: `Verification failed: Your logged-in email (${verifiedEmail}) does not match your registered email.`
+        }, { status: 400 });
+      }
+    }
+
     // Create the survey response
     const surveyResponse = await SurveyResponse.create({
-      fullName: fullName.trim(),
+      fullName: member.name,
+      memberId,
       teamId,
       role,
       standup11AmSuitable,
-      standup11AmNotSuitableReason: standup11AmNotSuitableReason || [],
-      standup11AmNotSuitableReasonOther: standup11AmNotSuitableReasonOther?.trim() || '',
+      standup11AmNotSuitableReason: standup11AmSuitable !== 'Yes, always available' ? standup11AmNotSuitableReason || [] : [],
+      standup11AmNotSuitableReasonOther: (standup11AmSuitable !== 'Yes, always available' && standup11AmNotSuitableReason?.includes('Other')) ? standup11AmNotSuitableReasonOther?.trim() || '' : '',
       standup830PmSuitable,
-      standup830PmNotSuitableReason: standup830PmNotSuitableReason || [],
-      standup830PmNotSuitableReasonOther: standup830PmNotSuitableReasonOther?.trim() || '',
+      standup830PmNotSuitableReason: standup830PmSuitable !== 'Yes, always available' ? standup830PmNotSuitableReason || [] : [],
+      standup830PmNotSuitableReasonOther: (standup830PmSuitable !== 'Yes, always available' && standup830PmNotSuitableReason?.includes('Other')) ? standup830PmNotSuitableReasonOther?.trim() || '' : '',
       classes1030To1200,
-      classes1030To1200Days: classes1030To1200Days || [],
+      classes1030To1200Days: classes1030To1200 !== 'No' ? classes1030To1200Days || [] : [],
       commitment800To930,
-      commitment800To930Details: commitment800To930Details?.trim() || '',
+      commitment800To930Details: commitment800To930 !== 'No' ? commitment800To930Details?.trim() || '' : '',
       preferredTime: preferredTime?.trim() || '',
       preferredDays,
       concernsOrSuggestions: concernsOrSuggestions?.trim() || '',

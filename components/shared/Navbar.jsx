@@ -7,21 +7,33 @@ import { useUI } from '@/lib/UIContext';
 
 export default function Navbar() {
   const { user } = useAuth();
-  const { platformMode, setPlatformMode } = useUI();
+  const { platformMode, setPlatformMode, setSidebarOpen } = useUI();
   const [bdTimeStr, setBdTimeStr] = React.useState('');
 
   React.useEffect(() => {
     // Standardize time formatting on the client side to avoid SSR mismatch
     const date = new Date();
     const formatted = formatBDDateString(date);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBdTimeStr(`${formatted} (BST)`);
   }, []);
 
   return (
-    <header className="h-16 bg-white border-b border-emerald-100 flex items-center justify-between px-8 sticky top-0 z-30">
+    <header className="h-16 bg-white border-b border-emerald-100 flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30">
       {/* Search / Section title */}
-      <div>
-        <h2 className="text-lg font-semibold text-slate-800">
+      <div className="flex items-center">
+        {/* Mobile Hamburger menu toggle button */}
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="lg:hidden p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 transition-colors mr-3 flex items-center justify-center"
+          title="Open Menu"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        <h2 className="text-sm sm:text-lg font-bold text-slate-800 truncate max-w-[150px] sm:max-w-none">
           {platformMode === 'team' ? 'Private Team Console' : 'Scrum Leader Console'}
         </h2>
       </div>
@@ -29,7 +41,7 @@ export default function Navbar() {
       {/* Right User Bar */}
       <div className="flex items-center gap-6">
         {/* Platform Mode Switcher Toggle */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold mr-2">
+        <div className="hidden lg:flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold mr-2">
           <button
             onClick={() => setPlatformMode('scrum')}
             className={`px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider text-[9px] font-extrabold ${
@@ -53,14 +65,14 @@ export default function Navbar() {
         </div>
 
         {/* Timezone Clock Widget */}
-        <div className="text-right hidden sm:block">
+        <div className="text-right hidden lg:block">
           <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Bangladesh Time</span>
           <span className="text-xs font-semibold text-emerald-800">{bdTimeStr || 'Loading...'}</span>
         </div>
 
         {/* User Card */}
         {user && (
-          <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
+          <div className="hidden lg:flex items-center gap-3 pl-6 border-l border-slate-200">
             <div className="text-right">
               <span className="text-sm font-semibold text-slate-800 block">{user.name}</span>
               <span className="text-[10px] text-emerald-600 font-medium capitalize block">{user.role?.replace('_', ' ')}</span>

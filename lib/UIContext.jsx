@@ -9,12 +9,15 @@ const UIContext = createContext({
   confirm: () => {},
   platformMode: 'scrum',
   setPlatformMode: () => {},
+  sidebarOpen: false,
+  setSidebarOpen: () => {},
 });
 
 export function UIProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [modal, setModal] = useState(null); // { type: 'alert'|'confirm', title: '', message: '', resolve: fn }
   const [platformMode, setPlatformModeState] = useState('scrum');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const dialogRef = useRef(null);
 
   useEffect(() => {
@@ -96,7 +99,7 @@ export function UIProvider({ children }) {
   };
 
   return (
-    <UIContext.Provider value={{ toast, alert: alertModal, confirm: confirmModal, platformMode, setPlatformMode }}>
+    <UIContext.Provider value={{ toast, alert: alertModal, confirm: confirmModal, platformMode, setPlatformMode, sidebarOpen, setSidebarOpen }}>
       {children}
 
       {/* Floating Toast Notification Stack (Bottom-Right) */}

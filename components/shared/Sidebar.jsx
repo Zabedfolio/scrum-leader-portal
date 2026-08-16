@@ -9,8 +9,13 @@ import { useUI } from '@/lib/UIContext';
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
-  const { platformMode } = useUI();
+  const { user, logout } = useAuth();
+  const { platformMode, setPlatformMode, sidebarOpen, setSidebarOpen } = useUI();
+
+  // Automatically collapse the mobile drawer after navigation action
+  React.useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname, setSidebarOpen]);
 
   const menuItems = [
     { name: 'Overview', href: '/dashboard', icon: House },
@@ -24,21 +29,40 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-white border-r border-emerald-100 flex flex-col h-screen sticky top-0">
-      {/* Brand Section */}
-      <div className="h-16 flex items-center px-6 border-b border-emerald-100 bg-emerald-50/30">
-        <div className="flex items-center gap-2">
-          <img
-            src="/logo.png"
-            alt="Scrum Leader Logo"
-            className="w-8 h-8 rounded-lg object-cover shadow-md shadow-emerald-500/10"
-          />
-          <div>
-            <h1 className="font-semibold text-emerald-950 text-sm leading-tight">Scrum Portal</h1>
-            <span className="text-[10px] text-emerald-600 font-medium tracking-wider uppercase">Leader Console</span>
+    <>
+      {/* Mobile Drawer Overlay Backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`fixed lg:sticky top-0 left-0 z-50 lg:z-30 w-64 bg-white border-r border-emerald-100 flex flex-col h-screen transition-transform duration-300 ease-in-out ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
+        {/* Brand Section */}
+        <div className="h-16 flex items-center justify-between px-6 border-b border-emerald-100 bg-emerald-50/30">
+          <div className="flex items-center gap-2">
+            <img
+              src="/logo.png"
+              alt="Scrum Leader Logo"
+              className="w-8 h-8 rounded-lg object-cover shadow-md shadow-emerald-500/10"
+            />
+            <div>
+              <h1 className="font-semibold text-emerald-950 text-sm leading-tight">Scrum Portal</h1>
+              <span className="text-[10px] text-emerald-600 font-medium tracking-wider uppercase">Leader Console</span>
+            </div>
           </div>
+
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden text-slate-400 hover:text-slate-655 p-1 rounded-xl hover:bg-slate-100 flex items-center justify-center font-bold text-lg"
+            title="Close Menu"
+          >
+            &times;
+          </button>
         </div>
-      </div>
 
       {/* Nav Links */}
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
@@ -63,6 +87,49 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* Mobile User Card & Platform Toggle (Only visible on mobile/drawer) */}
+      <div className="lg:hidden p-4 border-t border-emerald-100 bg-emerald-50/10 space-y-4">
+        {/* Platform Mode Toggle */}
+        <div className="space-y-1.5">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Platform Mode</span>
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold w-full">
+            <button
+              onClick={() => setPlatformMode('scrum')}
+              className={`flex-1 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider text-[9px] font-extrabold ${
+                platformMode === 'scrum'
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/10'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Scrum
+            </button>
+            <button
+              onClick={() => setPlatformMode('team')}
+              className={`flex-1 px-3 py-1.5 rounded-lg transition-all uppercase tracking-wider text-[9px] font-extrabold ${
+                platformMode === 'team'
+                  ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-500/10'
+                  : 'text-slate-500 hover:text-slate-850'
+              }`}
+            >
+              My Team
+            </button>
+          </div>
+        </div>
+
+        {/* User Card */}
+        {user && (
+          <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs border border-emerald-200 shadow-inner">
+              {user.name?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <span className="text-xs font-bold text-slate-850 block">{user.name}</span>
+              <span className="text-[9px] text-emerald-600 font-semibold capitalize block">{user.role?.replace('_', ' ')}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Logout Footer */}
       <div className="p-4 border-t border-emerald-100 bg-emerald-50/10">
         <button
@@ -74,5 +141,6 @@ export default function Sidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

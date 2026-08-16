@@ -15,8 +15,63 @@ export default function AttendancePage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [gridLoading, setGridLoading] = useState(false);
-  const { platformMode } = useUI();
+  const { toast, platformMode } = useUI();
   const { user } = useAuth();
+
+  // Manual Session Creation States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newSessionDate, setNewSessionDate] = useState('');
+  const [newSessionType, setNewSessionType] = useState('Day');
+  const [creatingSession, setCreatingSession] = useState(false);
+  const [modalError, setModalError] = useState('');
+
+  const handleOpenAddSession = () => {
+    const date = new Date();
+    const utc = date.getTime() + date.getTimezoneOffset() * 60000;
+    const bstDate = new Date(utc + 3600000 * 6);
+    const yyyy = bstDate.getFullYear();
+    const mm = String(bstDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(bstDate.getDate()).padStart(2, '0');
+    
+    setNewSessionDate(`${yyyy}-${mm}-${dd}`);
+    setNewSessionType(platformMode === 'team' ? '10:00 AM' : 'Day');
+    setModalError('');
+    setIsModalOpen(true);
+  };
+
+  const handleCreateSession = async (e) => {
+    e.preventDefault();
+    if (!selectedTeamId) return;
+    setCreatingSession(true);
+    setModalError('');
+
+    try {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teamId: selectedTeamId,
+          date: newSessionDate,
+          sessionType: newSessionType,
+          isTeamOnly: platformMode === 'team',
+        }),
+      });
+
+      if (res.ok) {
+        toast('Attendance session created manually!', 'success');
+        setIsModalOpen(false);
+        fetchGridData();
+      } else {
+        const data = await res.json();
+        setModalError(data.error || 'Failed to create session');
+      }
+    } catch (err) {
+      console.error(err);
+      setModalError('Network error occurred.');
+    } finally {
+      setCreatingSession(false);
+    }
+  };
 
   // Week selection states (represented by a date object inside the target week)
   const [weekPivotDate, setWeekPivotDate] = useState(new Date());
@@ -201,34 +256,46 @@ export default function AttendancePage() {
           <p className="text-slate-500 text-sm mt-0.5">Toggle member status and lock daily session records.</p>
         </div>
 
-        {/* Date Boundaries Selector widget */}
-        <div className="flex items-center gap-2 bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm self-start sm:self-auto">
-          <button
-            onClick={handlePrevWeek}
-            className="p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
-            title="Previous Week"
-          >
-            &larr; Prev
-          </button>
-          
-          <div className="px-4 text-xs font-bold text-slate-700 tracking-tight text-center min-w-[200px]">
-            {weekLabel || 'Loading range...'}
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+          {/* Add Session button */}
+          {selectedTeamId && (
+            <button
+              onClick={handleOpenAddSession}
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-xs py-2.5 px-4 rounded-xl shadow-md transition-all uppercase tracking-wider flex items-center gap-1.5"
+            >
+              Add Session
+            </button>
+          )}
+
+          {/* Date Boundaries Selector widget */}
+          <div className="flex items-center gap-2 bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm">
+            <button
+              onClick={handlePrevWeek}
+              className="p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
+              title="Previous Week"
+            >
+              &larr; Prev
+            </button>
+            
+            <div className="px-4 text-xs font-bold text-slate-700 tracking-tight text-center min-w-[200px]">
+              {weekLabel || 'Loading range...'}
+            </div>
+            
+            <button
+              onClick={handleNextWeek}
+              className="p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
+              title="Next Week"
+            >
+              Next &rarr;
+            </button>
+            
+            <button
+              onClick={handleResetToCurrent}
+              className="px-3 py-1.5 ml-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
+            >
+              Today
+            </button>
           </div>
-          
-          <button
-            onClick={handleNextWeek}
-            className="p-2 text-slate-600 hover:bg-slate-50 rounded-xl transition-all font-bold text-xs"
-            title="Next Week"
-          >
-            Next &rarr;
-          </button>
-          
-          <button
-            onClick={handleResetToCurrent}
-            className="px-3 py-1.5 ml-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all"
-          >
-            Today
-          </button>
         </div>
       </div>
 
@@ -283,6 +350,91 @@ export default function AttendancePage() {
           </a>
         </div>
       ) : null}
+
+      {/* Add Session Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="max-w-md w-full bg-white rounded-3xl border border-slate-100 shadow-2xl p-6 space-y-5 animate-scale-in relative">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-655 transition-colors p-1.5 rounded-full hover:bg-slate-100 flex items-center justify-center font-bold text-lg"
+              style={{ lineHeight: 1 }}
+            >
+              &times;
+            </button>
+
+            <div>
+              <h3 className="text-base font-bold text-slate-800">Add Scrum Session</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Manually append an attendance tracking column for this team.
+              </p>
+            </div>
+
+            {modalError && (
+              <div className="bg-red-50 text-red-750 border border-red-100 rounded-xl px-3 py-2 text-xs font-semibold">
+                {modalError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreateSession} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Session Date
+                </label>
+                <input
+                  type="date"
+                  value={newSessionDate}
+                  onChange={(e) => setNewSessionDate(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                  {platformMode === 'team' ? 'Meeting Time / Label' : 'Session Type'}
+                </label>
+                {platformMode === 'team' ? (
+                  <input
+                    type="text"
+                    value={newSessionType}
+                    onChange={(e) => setNewSessionType(e.target.value)}
+                    placeholder="e.g. 10:30 AM or Sprint Sync"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all font-semibold"
+                    required
+                  />
+                ) : (
+                  <select
+                    value={newSessionType}
+                    onChange={(e) => setNewSessionType(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100 transition-all font-semibold"
+                  >
+                    <option value="Day">Day Session</option>
+                    <option value="Afternoon">Afternoon Session</option>
+                  </select>
+                )}
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-3 px-4 rounded-xl transition-all uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingSession}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-3 px-4 rounded-xl shadow-md transition-all uppercase tracking-wider"
+                >
+                  {creatingSession ? 'Creating...' : 'Create Column'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

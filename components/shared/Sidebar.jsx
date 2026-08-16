@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { House, Calendar, Star, Persons, Gear, ArrowRightFromSquare } from '@gravity-ui/icons';
+import { House, Calendar, Star, Persons, Gear, ArrowRightFromSquare, CircleInfo, Link as LinkIcon } from '@gravity-ui/icons';
 import { useAuth } from '@/lib/AuthContext';
 import { useUI } from '@/lib/UIContext';
 
@@ -17,6 +17,8 @@ export default function Sidebar() {
     { name: 'Attendance', href: '/dashboard/attendance', icon: Calendar },
     { name: 'Points Board', href: '/dashboard/points', icon: Star },
     { name: platformMode === 'team' ? 'My Team Members' : 'Teams & Members', href: '/dashboard/members', icon: Persons },
+    { name: 'Survey Responses', href: '/dashboard/survey', icon: CircleInfo },
+    { name: 'Forms', href: '/dashboard/forms', icon: LinkIcon },
     { name: 'Settings', href: '/dashboard/settings', icon: Gear },
   ];
 

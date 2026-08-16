@@ -83,3 +83,74 @@ export async function GET(request) {
     );
   }
 }
+
+export async function POST(request) {
+  try {
+    await requireAuth();
+    await connectDB();
+
+    const { teamId, date, sessionType, isTeamOnly } = await request.json();
+
+    if (!teamId || !date || !sessionType) {
+      return NextResponse.json(
+        { error: 'Team, Date, and Session Type are required.' },
+        { status: 400 }
+      );
+    }
+
+    const normalizedDate = getStartOfDayBDinUTC(date);
+
+    // Check duplicate session
+    const existing = await ScrumSession.findOne({
+      date: normalizedDate,
+      sessionType,
+      teamId,
+      isTeamOnly: !!isTeamOnly,
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'A session with this type already exists for this date and team.' },
+        { status: 409 }
+      );
+    }
+
+    // Create session
+    const session = await ScrumSession.create({
+      date: normalizedDate,
+      sessionType,
+      teamId,
+      isTeamOnly: !!isTeamOnly,
+      locked: false,
+    });
+
+    // Backfill records for active members of this team
+    const activeMembers = await Member.find({ teamId, isActive: true });
+    for (const member of activeMembers) {
+      await AttendanceRecord.create({
+        sessionId: session._id,
+        memberId: member._id,
+        status: 'unresolved',
+        points: 0,
+      });
+    }
+
+    // Fetch and populate records for the session to return it fully formed
+    const records = await AttendanceRecord.find({ sessionId: session._id }).populate('memberId');
+    const result = {
+      ...session.toObject(),
+      records,
+    };
+
+    return NextResponse.json(result, { status: 201 });
+  } catch (error) {
+    if (error.status === 401) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    console.error('Create manual session error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

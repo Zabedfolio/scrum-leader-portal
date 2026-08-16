@@ -232,7 +232,11 @@ export default function AdminDirectoryPage() {
                   let roleBadgeClass = 'bg-slate-50 text-slate-600 border-slate-200';
                   let teamBadgeClass = 'bg-slate-50 text-slate-600 border-slate-200';
 
-                  if (person.role.includes('Scrum Leader')) {
+                  if (person.points !== null && person.points < 0) {
+                    rowClass = 'bg-red-50/50 hover:bg-red-100/40 border-l-4 border-l-red-500';
+                    roleBadgeClass = 'bg-red-100 text-red-800 border-red-200 font-bold';
+                    teamBadgeClass = 'bg-red-100 text-red-805 border-red-200 font-bold';
+                  } else if (person.role.includes('Scrum Leader')) {
                     rowClass = 'bg-indigo-50/40 hover:bg-indigo-50/70 border-l-4 border-l-indigo-600';
                     roleBadgeClass = 'bg-indigo-100 text-indigo-850 border-indigo-200 font-extrabold';
                     teamBadgeClass = 'bg-slate-200 text-slate-700 border-slate-300 font-bold';

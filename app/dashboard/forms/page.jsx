@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useUI } from '@/lib/UIContext';
-import { Copy, CircleCheck, ArrowRightFromSquare } from '@gravity-ui/icons';
+import { Copy, CircleCheck, ArrowRightFromSquare, CircleInfo } from '@gravity-ui/icons';
 
 export default function FormsPage() {
   const { toast } = useUI();
@@ -22,13 +23,7 @@ export default function FormsPage() {
       title: 'Standup Availability Survey',
       description: 'Used to gather weekday class hours, evening conflicts, standup time slot suitability, and general schedule feedback from team members.',
       path: '/survey',
-      badge: 'Public & Active',
-    },
-    {
-      id: 'member-directory',
-      title: 'Portal Member Directory',
-      description: 'Public member list showing registered names, teams, and emails. Useful for members who forgot their registered Gmail address.',
-      path: '/directory',
+      responsesPath: '/dashboard/survey',
       badge: 'Public & Active',
     },
   ];
@@ -80,32 +75,44 @@ export default function FormsPage() {
                 </div>
               </div>
 
-              <div className="pt-6 flex gap-3">
-                <button
-                  onClick={() => handleCopyLink(form.path, form.id)}
-                  className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs py-2.5 px-4 rounded-xl transition-all uppercase tracking-wider flex items-center justify-center gap-1.5"
-                >
-                  {isCopied ? (
-                    <>
-                      <CircleCheck className="w-3.5 h-3.5 text-emerald-600 animate-scale-in" />
-                      <span className="hidden sm:inline">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Copy Link</span>
-                    </>
-                  )}
-                </button>
-                <a
-                  href={form.path}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl text-center shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-1.5"
-                >
-                  <ArrowRightFromSquare className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Open Form</span>
-                </a>
+              <div className="pt-6 flex flex-col gap-2.5">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleCopyLink(form.path, form.id)}
+                    className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs py-2.5 px-3 rounded-xl transition-all uppercase tracking-wider flex items-center justify-center gap-1.5"
+                  >
+                    {isCopied ? (
+                      <>
+                        <CircleCheck className="w-3.5 h-3.5 text-emerald-600 animate-scale-in" />
+                        <span className="hidden sm:inline">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Copy Link</span>
+                      </>
+                    )}
+                  </button>
+                  <a
+                    href={form.path}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-bold text-xs py-2.5 px-3 rounded-xl text-center transition-all uppercase tracking-wider flex items-center justify-center gap-1.5"
+                  >
+                    <ArrowRightFromSquare className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Open Form</span>
+                  </a>
+                </div>
+
+                {form.responsesPath && (
+                  <Link
+                    href={form.responsesPath}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 px-4 rounded-xl text-center shadow-md transition-all uppercase tracking-wider flex items-center justify-center gap-1.5"
+                  >
+                    <CircleInfo className="w-3.5 h-3.5" />
+                    View Responses
+                  </Link>
+                )}
               </div>
             </div>
           );

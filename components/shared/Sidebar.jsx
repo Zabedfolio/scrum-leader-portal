@@ -23,7 +23,6 @@ export default function Sidebar() {
     { name: 'Points Board', href: '/dashboard/points', icon: Star },
     { name: platformMode === 'team' ? 'My Team Members' : 'Teams & Members', href: '/dashboard/members', icon: Persons },
     { name: 'Member Directory', href: '/dashboard/directory', icon: Magnifier },
-    { name: 'Survey Responses', href: '/dashboard/survey', icon: CircleInfo },
     { name: 'Forms', href: '/dashboard/forms', icon: LinkIcon },
     { name: 'Settings', href: '/dashboard/settings', icon: Gear },
   ];
